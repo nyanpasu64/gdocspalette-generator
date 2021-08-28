@@ -5,17 +5,42 @@
 #include <QDebug>
 
 #include <algorithm>
+#include <cmath>
 #include <string>
 #include <vector>
 #include <utility>
 
 // https://spreadsheet.dev/how-to-get-the-hexadecimal-codes-of-colors-in-google-sheets
 
+inline qreal lerp(qreal x, qreal y, qreal position) {
+    return x + position * (y - x);
+}
+
+QColor lerp_colors(QColor c1, QColor c2, qreal position) {
+    #define GET_COLOR(I) \
+        qreal r##I, g##I, b##I; \
+        c##I.getRgbF(&r##I, &g##I, &b##I);
+
+    GET_COLOR(1)
+    GET_COLOR(2)
+
+    #define BLEND_COLOR(CH) \
+        sqrt(lerp(CH##1 * CH##1, CH##2 * CH##2, position))
+
+    return QColor::fromRgbF(BLEND_COLOR(r), BLEND_COLOR(g), BLEND_COLOR(b));
+
+    #undef BLEND_COLOR
+}
+
 static std::string format(QString const& s) {
     return fmt::format("QColor({}, {}, {})",
         s.midRef(1, 2).toInt(nullptr, 16),
         s.midRef(3, 2).toInt(nullptr, 16),
         s.midRef(5, 2).toInt(nullptr, 16));
+}
+
+static QString lerp_str(QString const& a, QString const& b, qreal f) {
+    return lerp_colors(QColor(a), QColor(b), f).name();
 }
 
 int main(int argc, char *argv[]) {
@@ -32,10 +57,16 @@ int main(int argc, char *argv[]) {
             "#f3f3f3",
             "#ffffff",
         };
-        fmt::print("constinit QColor const GRAYS[GRAY_COUNT] = {{\n");
-        for (auto const& c : grays) {
-            fmt::print("    {},\n", format(c));
-        }
+        fmt::print("constinit QColor const GRAYS[SHADE_COUNT] = {{\n");
+        fmt::print("    {},\n", format(grays[0]));
+        fmt::print("    {},\n", format(grays[1]));
+        fmt::print("    {},\n", format(grays[2]));
+        fmt::print("    {},\n", format(grays[3]));
+        fmt::print("    {},\n", format(grays[4]));
+        fmt::print("    {},\n", format(lerp_str(grays[5], grays[6], 0.5)));
+//        fmt::print("    {},\n", format(lerp_str(grays[6], grays[7], 0.5)));
+        fmt::print("    {},\n", format(grays[7]));
+        fmt::print("    {},\n", format(grays[9]));
         fmt::print("}};\n");
     }
 
